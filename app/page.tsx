@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GameState, Choice } from '@/lib/types';
-import { scenarios, createInitialState, rollDice, getStatBonus } from '@/lib/gameData';
+import { GameState, Choice } from '../lib/types';
+import { scenarios, createInitialState, rollDice, getStatBonus } from '../lib/gameData';
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(createInitialState());
