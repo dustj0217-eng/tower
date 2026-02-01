@@ -1,346 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-// ============================================
-// 타입 정의
-// ============================================
-
-type Speaker = 'narrator' | 'echo' | 'ludwig';
-
-interface GameState {
-  pollution: number;        // 오염도 0-100
-  worldTree: number;        // 세계수 0-100
-  food: number;
-  manaFragment: number;
-  purifyingWater: number;
-  currentScenarioId: string;
-  echoTrust: number;        // 0-100
-  flags: Record<string, boolean>;
-}
-
-interface Choice {
-  id: string;
-  text: string;
-  nextId?: string;
-  diceCheck?: number;       // 주사위 목표값 (없으면 판정 안 함)
-  successId?: string;
-  failureId?: string;
-  effect?: (state: GameState) => GameState;
-  condition?: (state: GameState) => boolean;
-  disabled?: (state: GameState) => boolean;
-}
-
-interface Scenario {
-  id: string;
-  speaker: Speaker;
-  text: string | ((state: GameState) => string);
-  choices: Choice[];
-}
-
-// ============================================
-// 시나리오 데이터
-// ============================================
-
-const scenarios: Scenario[] = [
-  {
-    id: 'intro_01',
-    speaker: 'narrator',
-    text: '어둠 속에서 깨어난다. 머리가 지끈거린다. 여기가... 어디지?',
-    choices: [
-      {
-        id: 'look_around',
-        text: '주변을 둘러본다',
-        nextId: 'intro_02',
-      },
-    ],
-  },
-  {
-    id: 'intro_02',
-    speaker: 'narrator',
-    text: '희미한 마법 결정의 빛이 지하 공간을 비춘다. 벽에는 "비상 대피소 7구역"이라는 글씨가 보인다. 당신의 품에는 작은 화분이 있고, 그 안에는 작은 새싹이 자라고 있다.',
-    choices: [
-      {
-        id: 'check_sprout',
-        text: '새싹을 살펴본다',
-        nextId: 'intro_03',
-      },
-    ],
-  },
-  {
-    id: 'intro_03',
-    speaker: 'echo',
-    text: '...안녕하세요. 깨어나셨군요.',
-    choices: [
-      {
-        id: 'startled',
-        text: '깜짝 놀라 뒤로 물러난다',
-        nextId: 'intro_04',
-      },
-      {
-        id: 'calm',
-        text: '"당신은... 누구죠?"',
-        nextId: 'intro_04',
-        effect: (state) => ({ ...state, echoTrust: state.echoTrust + 5 }),
-      },
-    ],
-  },
-  {
-    id: 'intro_04',
-    speaker: 'echo',
-    text: '제 이름은 에코예요. 당신 품에 있는 세계수의... 영혼이라고 할 수 있죠. 당신의 이름은 기억하시나요?',
-    choices: [
-      {
-        id: 'try_remember',
-        text: '기억을 더듬어본다 (주사위 굴리기)',
-        diceCheck: 12,
-        successId: 'intro_05_success',
-        failureId: 'intro_05_failure',
-      },
-    ],
-  },
-  {
-    id: 'intro_05_failure',
-    speaker: 'narrator',
-    text: '머릿속이 하얗다. 아무것도 기억나지 않는다.',
-    choices: [
-      {
-        id: 'continue',
-        text: '에코를 바라본다',
-        nextId: 'intro_06',
-      },
-    ],
-  },
-  {
-    id: 'intro_05_success',
-    speaker: 'narrator',
-    text: '어렴풋이... 이름 하나가 떠오른다. "루드비히..." 맞다, 당신의 이름은 루드비히다.',
-    choices: [
-      {
-        id: 'continue',
-        text: '에코를 바라본다',
-        nextId: 'intro_06',
-        effect: (state) => ({
-          ...state,
-          flags: { ...state.flags, rememberedName: true },
-        }),
-      },
-    ],
-  },
-  {
-    id: 'intro_06',
-    speaker: 'echo',
-    text: (state) =>
-      state.flags.rememberedName
-        ? '루드비히... 맞아요. 좋은 이름이에요. 자, 이제 일어나야 해요. 위는 위험하지만... 이대로 있을 수는 없어요.'
-        : '괜찮아요, 천천히 기억날 거예요. 자, 이제 일어나야 해요. 위는 위험하지만... 이대로 있을 수는 없어요.',
-    choices: [
-      {
-        id: 'ask_danger',
-        text: '"무슨 위험이죠?"',
-        nextId: 'intro_07',
-      },
-      {
-        id: 'get_up',
-        text: '일어나 출구를 향한다',
-        nextId: 'intro_07',
-      },
-    ],
-  },
-  {
-    id: 'intro_07',
-    speaker: 'echo',
-    text: '이 도시는... 무너졌어요. 검은 오염이 모든 걸 집어삼키고 있죠. 하지만 우리에겐 희망이 있어요. 이 세계수를요.',
-    choices: [
-      {
-        id: 'continue',
-        text: '계속 듣는다',
-        nextId: 'intro_08',
-      },
-    ],
-  },
-  {
-    id: 'intro_08',
-    speaker: 'echo',
-    text: '세계수를 키우면... 이 오염을 정화할 수 있어요. 하지만 쉽지 않을 거예요. 위험한 곳을 탐험하고, 자원을 모으고, 오염과 싸워야 해요.',
-    choices: [
-      {
-        id: 'accept',
-        text: '"알겠어요. 해보죠."',
-        nextId: 'tutorial_01',
-      },
-      {
-        id: 'hesitate',
-        text: '"...정말 가능할까요?"',
-        nextId: 'tutorial_01',
-        effect: (state) => ({ ...state, echoTrust: state.echoTrust - 3 }),
-      },
-    ],
-  },
-  {
-    id: 'tutorial_01',
-    speaker: 'echo',
-    text: '일단 이 대피소부터 나가야 해요. 위로 올라가는 계단이 저기 있어요. 하지만... 위험할 수 있어요.',
-    choices: [
-      {
-        id: 'go_up',
-        text: '조심스럽게 계단을 오른다',
-        nextId: 'exploration_hub',
-        effect: (state) => ({
-          ...state,
-          pollution: state.pollution + 5,
-          flags: { ...state.flags, tutorial_complete: true },
-        }),
-      },
-    ],
-  },
-  {
-    id: 'exploration_hub',
-    speaker: 'narrator',
-    text: (state) =>
-      `지상으로 나왔다. 폐허가 된 도시가 눈앞에 펼쳐진다. 검은 안개가 곳곳에 퍼져있다.\n\n오염도: ${state.pollution}% | 세계수: ${state.worldTree}% | 식량: ${state.food}`,
-    choices: [
-      {
-        id: 'explore_ruins',
-        text: '탑의 폐허를 탐험한다',
-        diceCheck: 10,
-        successId: 'found_resources',
-        failureId: 'danger_encounter',
-      },
-      {
-        id: 'rest',
-        text: '잠시 휴식을 취한다 (식량 -1)',
-        nextId: 'rest_result',
-        disabled: (state) => state.food < 1,
-        effect: (state) => ({
-          ...state,
-          food: state.food - 1,
-          pollution: Math.max(0, state.pollution - 3),
-        }),
-      },
-      {
-        id: 'water_tree',
-        text: '세계수에 정화수를 준다 (정화수 -1)',
-        nextId: 'water_tree_result',
-        disabled: (state) => state.purifyingWater < 1,
-        effect: (state) => ({
-          ...state,
-          purifyingWater: state.purifyingWater - 1,
-          worldTree: Math.min(100, state.worldTree + 10),
-          pollution: Math.max(0, state.pollution - 5),
-        }),
-      },
-    ],
-  },
-  {
-    id: 'found_resources',
-    speaker: 'narrator',
-    text: '폐허 속에서 보급품을 발견했다! 식량과 마력 결정을 얻었다.',
-    choices: [
-      {
-        id: 'continue',
-        text: '돌아간다',
-        nextId: 'exploration_hub',
-        effect: (state) => ({
-          ...state,
-          food: state.food + 3,
-          manaFragment: state.manaFragment + 1,
-          pollution: state.pollution + 3,
-        }),
-      },
-    ],
-  },
-  {
-    id: 'danger_encounter',
-    speaker: 'narrator',
-    text: '무너진 잔해가 갑자기 무너진다! 가까스로 피했지만 검은 안개에 노출되었다.',
-    choices: [
-      {
-        id: 'continue',
-        text: '황급히 돌아간다',
-        nextId: 'exploration_hub',
-        effect: (state) => ({
-          ...state,
-          pollution: state.pollution + 8,
-        }),
-      },
-    ],
-  },
-  {
-    id: 'rest_result',
-    speaker: 'echo',
-    text: '조금 나아진 것 같아요. 하지만... 시간이 지날수록 오염은 퍼져가고 있어요.',
-    choices: [
-      {
-        id: 'continue',
-        text: '다시 일어선다',
-        nextId: 'exploration_hub',
-        effect: (state) => ({
-          ...state,
-          pollution: state.pollution + 2,
-        }),
-      },
-    ],
-  },
-  {
-    id: 'water_tree_result',
-    speaker: 'echo',
-    text: '세계수가... 자라고 있어요! 주변의 오염이 조금씩 걷히는 게 느껴져요.',
-    choices: [
-      {
-        id: 'continue',
-        text: (state) =>
-          state.worldTree >= 100
-            ? '세계수를 바라본다'
-            : '계속 탐험한다',
-        nextId: (state: GameState) =>
-          state.worldTree >= 100 ? 'ending_good' : 'exploration_hub',
-      } as any, // 간단한 구현을 위해
-    ],
-  },
-  {
-    id: 'ending_good',
-    speaker: 'echo',
-    text: '세계수가 완전히 자랐어요! 푸른 빛이 도시 전체를 감싸며 오염이 사라지기 시작합니다. 우리가... 해냈어요!',
-    choices: [
-      {
-        id: 'ending',
-        text: '[게임 클리어 - 새로 시작하기]',
-        nextId: 'intro_01',
-        effect: () => createInitialState(),
-      },
-    ],
-  },
-];
-
-// ============================================
-// 초기 상태
-// ============================================
-
-function createInitialState(): GameState {
-  return {
-    pollution: 20,
-    worldTree: 5,
-    food: 10,
-    manaFragment: 3,
-    purifyingWater: 5,
-    currentScenarioId: 'intro_01',
-    echoTrust: 50,
-    flags: {},
-  };
-}
-
-// ============================================
-// 유틸 함수
-// ============================================
-
-function rollDice(): number {
-  return Math.floor(Math.random() * 20) + 1;
-}
-
-// ============================================
-// 메인 게임 컴포넌트
-// ============================================
+import { GameState, Choice } from '@/lib/types';
+import { scenarios, createInitialState, rollDice, getStatBonus } from '@/lib/gameData';
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>(createInitialState());
@@ -417,7 +79,11 @@ export default function Game() {
     }
     
     if (choice.nextId) {
-      newState.currentScenarioId = choice.nextId;
+      // nextId가 함수인 경우 실행, 아니면 그대로 사용
+      const nextScenarioId = typeof choice.nextId === 'function' 
+        ? choice.nextId(newState) 
+        : choice.nextId;
+      newState.currentScenarioId = nextScenarioId;
     }
 
     setGameState(newState);
@@ -461,43 +127,72 @@ export default function Game() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
       {/* 상태바 */}
-      <div className="bg-gray-950 bg-opacity-80 p-4 border-b border-gray-700">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-          <div>
-            <div className="text-gray-400">오염도</div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-700 rounded-full h-2">
+      <div className="bg-gray-950 bg-opacity-95 border-b border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 py-2">
+          {/* 첫 번째 줄: 핵심 바 */}
+          <div className="flex items-center gap-4 mb-2">
+            {/* 체력 */}
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-rose-400 text-xs">❤️</span>
+              <div className="flex-1 bg-gray-800 rounded-full h-3 max-w-[120px]">
                 <div
-                  className="bg-red-500 h-2 rounded-full transition-all"
+                  className="bg-rose-500 h-3 rounded-full transition-all"
+                  style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
+                />
+              </div>
+              <span className="text-rose-400 font-bold text-sm min-w-[50px]">
+                {gameState.player.health}/{gameState.player.maxHealth}
+              </span>
+            </div>
+
+            {/* 오염도 */}
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-red-400 text-xs">☠️</span>
+              <div className="flex-1 bg-gray-800 rounded-full h-3 max-w-[120px]">
+                <div
+                  className="bg-red-600 h-3 rounded-full transition-all"
                   style={{ width: `${gameState.pollution}%` }}
                 />
               </div>
-              <span className="text-red-400 font-bold">{gameState.pollution}%</span>
+              <span className="text-red-400 font-bold text-sm min-w-[40px]">{gameState.pollution}%</span>
             </div>
-          </div>
-          <div>
-            <div className="text-gray-400">세계수</div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-700 rounded-full h-2">
+
+            {/* 세계수 */}
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-green-400 text-xs">🌱</span>
+              <div className="flex-1 bg-gray-800 rounded-full h-3 max-w-[120px]">
                 <div
-                  className="bg-green-500 h-2 rounded-full transition-all"
+                  className="bg-green-500 h-3 rounded-full transition-all"
                   style={{ width: `${gameState.worldTree}%` }}
                 />
               </div>
-              <span className="text-green-400 font-bold">{gameState.worldTree}%</span>
+              <span className="text-green-400 font-bold text-sm min-w-[40px]">{gameState.worldTree}%</span>
+            </div>
+
+            {/* 턴 */}
+            <div className="flex items-center gap-1">
+              <span className="text-cyan-400 text-xs">🕐</span>
+              <span className="text-cyan-400 font-bold text-sm">{gameState.turnCount}</span>
             </div>
           </div>
-          <div>
-            <div className="text-gray-400">식량</div>
-            <div className="text-yellow-400 font-bold">{gameState.food}</div>
-          </div>
-          <div>
-            <div className="text-gray-400">마력결정</div>
-            <div className="text-purple-400 font-bold">{gameState.manaFragment}</div>
-          </div>
-          <div>
-            <div className="text-gray-400">정화수</div>
-            <div className="text-blue-400 font-bold">{gameState.purifyingWater}</div>
+
+          {/* 두 번째 줄: 자원 & 스탯 */}
+          <div className="flex items-center justify-between text-xs">
+            {/* 자원 */}
+            <div className="flex items-center gap-3">
+              <span className="text-yellow-400">🍞 {gameState.resources.food}</span>
+              <span className="text-purple-400">💎 {gameState.resources.manaFragment}</span>
+              <span className="text-blue-400">💧 {gameState.resources.purifyingWater}</span>
+              <span className="text-indigo-400">✨ {gameState.resources.soulFragment}</span>
+            </div>
+            
+            {/* 스탯 */}
+            <div className="flex items-center gap-3 text-gray-400">
+              <span>💪 {gameState.player.strength}</span>
+              <span>🏃 {gameState.player.agility}</span>
+              <span>🔮 {gameState.player.magic}</span>
+              <span>👁️ {gameState.player.perception}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -584,13 +279,17 @@ export default function Game() {
       </div>
 
       {/* 게임 오버 체크 */}
-      {gameState.pollution >= 100 && (
+      {(gameState.pollution >= 100 || gameState.player.health <= 0) && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center">
           <div className="text-center">
             <div className="text-4xl font-bold text-red-500 mb-4">
               게임 오버
             </div>
-            <div className="text-xl mb-6">오염이 모든 것을 집어삼켰다...</div>
+            <div className="text-xl mb-6">
+              {gameState.pollution >= 100 
+                ? '오염이 모든 것을 집어삼켰다...' 
+                : '당신은 쓰러졌다...'}
+            </div>
             <button
               onClick={() => setGameState(createInitialState())}
               className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded-lg text-lg"
