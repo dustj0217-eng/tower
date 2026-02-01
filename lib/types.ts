@@ -7,6 +7,7 @@ export interface GameState {
   echoTrust: number;        // 0-100
   flags: Record<string, boolean>;
   turnCount: number;        // 턴 수
+  visitedRooms?: string[]
   
   // 자원
   resources: {
@@ -48,4 +49,5 @@ export interface Scenario {
   speaker: Speaker;
   text: string | ((state: GameState) => string);
   choices: Choice[];
+  onEnter?: (state: GameState) => string | null; 
 }

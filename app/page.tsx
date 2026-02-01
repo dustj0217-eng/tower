@@ -11,6 +11,8 @@ export default function Game() {
   const [showDice, setShowDice] = useState(false);
   const [diceResult, setDiceResult] = useState<number | null>(null);
   const [pendingChoice, setPendingChoice] = useState<Choice | null>(null);
+  const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<'stats' | 'resources' | null>(null);
 
   const currentScenario = scenarios.find(
     (s) => s.id === gameState.currentScenarioId
@@ -43,35 +45,30 @@ export default function Game() {
   }, [currentScenario, gameState]);
 
   const handleChoice = (choice: Choice) => {
-    // 비활성화 체크
     if (choice.disabled && choice.disabled(gameState)) return;
 
-    // 주사위 판정이 필요한 경우
     if (choice.diceCheck) {
       setPendingChoice(choice);
       setShowDice(true);
+      const result = rollDice();
+      setDiceResult(result);
       setTimeout(() => {
-        const result = rollDice();
-        setDiceResult(result);
-        setTimeout(() => {
-          const success = result >= (choice.diceCheck || 0);
-          const nextId = success ? choice.successId : choice.failureId;
-          if (nextId) {
-            let newState = { ...gameState, currentScenarioId: nextId };
-            if (choice.effect) {
-              newState = choice.effect(newState);
-            }
-            setGameState(newState);
+        const success = result >= (choice.diceCheck || 0);
+        const nextId = success ? choice.successId : choice.failureId;
+        if (nextId) {
+          let newState = { ...gameState, currentScenarioId: nextId };
+          if (choice.effect) {
+            newState = choice.effect(newState);
           }
-          setShowDice(false);
-          setDiceResult(null);
-          setPendingChoice(null);
-        }, 2000);
-      }, 500);
+          setGameState(newState);
+        }
+        setShowDice(false);
+        setDiceResult(null);
+        setPendingChoice(null);
+      }, 1500);
       return;
     }
 
-    // 일반 선택
     let newState = { ...gameState };
     
     if (choice.effect) {
@@ -79,7 +76,6 @@ export default function Game() {
     }
     
     if (choice.nextId) {
-      // nextId가 함수인 경우 실행, 아니면 그대로 사용
       const nextScenarioId = typeof choice.nextId === 'function' 
         ? choice.nextId(newState) 
         : choice.nextId;
@@ -101,14 +97,14 @@ export default function Game() {
 
   if (!currentScenario) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-xl">시나리오를 찾을 수 없습니다.</div>
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+        <div className="text-center text-amber-900">시나리오를 찾을 수 없습니다.</div>
       </div>
     );
   }
 
   const speakerName = {
-    narrator: '나레이터',
+    narrator: '',
     echo: '에코',
     ludwig: '루드비히',
   }[currentScenario.speaker];
@@ -116,78 +112,69 @@ export default function Game() {
   const getSpeakerColor = () => {
     switch (currentScenario.speaker) {
       case 'echo':
-        return 'text-green-400';
+        return 'text-emerald-700';
       case 'ludwig':
-        return 'text-blue-400';
+        return 'text-blue-700';
       default:
-        return 'text-gray-400';
+        return 'text-amber-800';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
-      {/* 상태바 */}
-      <div className="bg-gray-950 bg-opacity-95 border-b border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-2">
-          {/* 첫 번째 줄: 핵심 바 */}
-          <div className="flex items-center gap-4 mb-2">
-            {/* 체력 */}
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-rose-400 text-xs">❤️</span>
-              <div className="flex-1 bg-gray-800 rounded-full h-3 max-w-[120px]">
-                <div
-                  className="bg-rose-500 h-3 rounded-full transition-all"
-                  style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
-                />
-              </div>
-              <span className="text-rose-400 font-bold text-sm min-w-[50px]">
-                {gameState.player.health}/{gameState.player.maxHealth}
-              </span>
+    <div className="min-h-screen bg-amber-50 flex flex-col">
+      {/* 상단 스탯바 - 컴팩트 */}
+      <div className="bg-amber-100 border-b-2 border-amber-800 shadow-sm">
+        <div className="p-3">
+          {/* 핵심 스탯 */}
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'health' ? null : 'health')}
+                className="flex items-center gap-1"
+              >
+                <span>❤️</span>
+                <span className="text-rose-700 font-bold">{gameState.player.health}/{gameState.player.maxHealth}</span>
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'pollution' ? null : 'pollution')}
+                className="flex items-center gap-1"
+              >
+                <span>☠️</span>
+                <span className="text-red-700 font-bold">{gameState.pollution}%</span>
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'worldTree' ? null : 'worldTree')}
+                className="flex items-center gap-1"
+              >
+                <span>🌱</span>
+                <span className="text-green-700 font-bold">{gameState.worldTree}%</span>
+              </button>
             </div>
-
-            {/* 오염도 */}
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-red-400 text-xs">☠️</span>
-              <div className="flex-1 bg-gray-800 rounded-full h-3 max-w-[120px]">
-                <div
-                  className="bg-red-600 h-3 rounded-full transition-all"
-                  style={{ width: `${gameState.pollution}%` }}
-                />
-              </div>
-              <span className="text-red-400 font-bold text-sm min-w-[40px]">{gameState.pollution}%</span>
-            </div>
-
-            {/* 세계수 */}
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-green-400 text-xs">🌱</span>
-              <div className="flex-1 bg-gray-800 rounded-full h-3 max-w-[120px]">
-                <div
-                  className="bg-green-500 h-3 rounded-full transition-all"
-                  style={{ width: `${gameState.worldTree}%` }}
-                />
-              </div>
-              <span className="text-green-400 font-bold text-sm min-w-[40px]">{gameState.worldTree}%</span>
-            </div>
-
-            {/* 턴 */}
-            <div className="flex items-center gap-1">
-              <span className="text-cyan-400 text-xs">🕐</span>
-              <span className="text-cyan-400 font-bold text-sm">{gameState.turnCount}</span>
+            <div className="text-amber-700">
+              <span>🕐 {gameState.turnCount}</span>
             </div>
           </div>
 
-          {/* 두 번째 줄: 자원 & 스탯 */}
-          <div className="flex items-center justify-between text-xs">
-            {/* 자원 */}
-            <div className="flex items-center gap-3">
-              <span className="text-yellow-400">🍞 {gameState.resources.food}</span>
-              <span className="text-purple-400">💎 {gameState.resources.manaFragment}</span>
-              <span className="text-blue-400">💧 {gameState.resources.purifyingWater}</span>
-              <span className="text-indigo-400">✨ {gameState.resources.soulFragment}</span>
+          {/* 툴팁 */}
+          {showTooltip && (
+            <div className="text-xs bg-amber-200 border border-amber-700 rounded p-2 mb-2">
+              {showTooltip === 'health' && '생명력 - 0이 되면 게임 오버'}
+              {showTooltip === 'pollution' && '오염도 - 100%가 되면 게임 오버'}
+              {showTooltip === 'worldTree' && '세계수 - 회복의 희망'}
             </div>
-            
+          )}
+
+          <div className="grid grid-cols-2">
+            {/* 자원 */}
+            <div className="flex items-center gap-3 text-sm mt-2 rounded p-2">
+              <span>🍞 {gameState.resources.food}</span>
+              <span>💎 {gameState.resources.manaFragment}</span>
+              <span>💧 {gameState.resources.purifyingWater}</span>
+              <span>✨ {gameState.resources.soulFragment}</span>
+            </div>
+
             {/* 스탯 */}
-            <div className="flex items-center gap-3 text-gray-400">
+            <div className="flex items-center gap-3 text-sm mt-2 rounded p-2">
               <span>💪 {gameState.player.strength}</span>
               <span>🏃 {gameState.player.agility}</span>
               <span>🔮 {gameState.player.magic}</span>
@@ -198,101 +185,95 @@ export default function Game() {
       </div>
 
       {/* 메인 게임 영역 */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="max-w-3xl w-full">
-          {/* 텍스트 표시 */}
-          <div
-            className="bg-gray-800 bg-opacity-90 rounded-lg p-6 mb-6 min-h-[200px] cursor-pointer border border-gray-700"
-            onClick={skipTyping}
-          >
-            <div className={`font-bold mb-3 ${getSpeakerColor()}`}>
-              {speakerName}
-            </div>
-            <div className="text-lg leading-relaxed whitespace-pre-line">
-              {displayedText}
-              {isTyping && <span className="animate-pulse">▊</span>}
-            </div>
+      <div className="flex-1 p-4 overflow-y-auto">
+        {/* 텍스트 박스 */}
+        <div
+          className="mb-4"
+          onClick={skipTyping}
+        >
+          <div className={`font-bold mb-2 ${getSpeakerColor()}`}>
+            {speakerName}
           </div>
+          <div className="text-base leading-relaxed whitespace-pre-line text-gray-800">
+            {displayedText}
+            {isTyping && <span className="text-amber-600">▊</span>}
+          </div>
+        </div>
 
-          {/* 주사위 표시 */}
-          {showDice && (
-            <div className="bg-gray-800 bg-opacity-90 rounded-lg p-6 mb-6 text-center border border-yellow-500">
-              <div className="text-2xl mb-4">🎲 주사위를 굴립니다...</div>
-              {diceResult !== null && (
-                <div>
-                  <div className="text-5xl font-bold text-yellow-400 mb-2">
-                    {diceResult}
-                  </div>
-                  <div className="text-lg">
-                    {pendingChoice && diceResult >= (pendingChoice.diceCheck || 0) ? (
-                      <span className="text-green-400">✓ 성공!</span>
-                    ) : (
-                      <span className="text-red-400">✗ 실패...</span>
-                    )}
-                  </div>
-                </div>
+        {/* 주사위 표시 - 컴팩트 */}
+        {showDice && diceResult !== null && (
+          <div className="bg-yellow-50 border-2 border-yellow-700 rounded p-3 mb-4 text-center">
+            <div className="text-sm text-yellow-900 mb-1">🎲 주사위</div>
+            <div className="text-3xl font-bold text-yellow-700 mb-1">
+              {diceResult}
+            </div>
+            <div className="text-sm">
+              {pendingChoice && diceResult >= (pendingChoice.diceCheck || 0) ? (
+                <span className="text-green-700">✓ 성공</span>
+              ) : (
+                <span className="text-red-700">✗ 실패</span>
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 선택지 */}
-          {!isTyping && !showDice && (
-            <div className="grid gap-3">
-              {currentScenario.choices.map((choice) => {
-                const isDisabled = choice.disabled && choice.disabled(gameState);
-                const isHidden = choice.condition && !choice.condition(gameState);
+        {/* 선택지 */}
+        {!isTyping && !showDice && (
+          <div className="space-y-2">
+            {currentScenario.choices.map((choice) => {
+              const isDisabled = choice.disabled && choice.disabled(gameState);
+              const isHidden = choice.condition && !choice.condition(gameState);
 
-                if (isHidden) return null;
+              if (isHidden) return null;
 
-                return (
-                  <button
-                    key={choice.id}
-                    onClick={() => handleChoice(choice)}
-                    disabled={isDisabled}
-                    className={`
-                      p-4 rounded-lg text-left transition-all
-                      ${
-                        isDisabled
-                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-700 hover:bg-gray-600 border border-gray-600 hover:border-gray-500'
-                      }
-                    `}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>
-                        {typeof choice.text === 'function'
-                          ? choice.text(gameState)
-                          : choice.text}
+              return (
+                <button
+                  key={choice.id}
+                  onClick={() => handleChoice(choice)}
+                  disabled={isDisabled}
+                  className={`
+                    w-full p-3 rounded text-left text-sm
+                    ${
+                      isDisabled
+                        ? 'bg-gray-200 text-gray-500'
+                        : 'bg-amber-100 text-gray-800 active:bg-amber-200'
+                    }
+                  `}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>
+                      {typeof choice.text === 'function'
+                        ? choice.text(gameState)
+                        : choice.text}
+                    </span>
+                    {choice.diceCheck && !isDisabled && (
+                      <span className="text-yellow-700 text-xs ml-2 px-2 py-1">
+                        🎲 {choice.diceCheck}+
                       </span>
-                      {choice.diceCheck && !isDisabled && (
-                        <span className="text-yellow-400 text-sm ml-2">
-                          🎲 목표: {choice.diceCheck}+
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* 게임 오버 체크 */}
+      {/* 게임 오버 */}
       {(gameState.pollution >= 100 || gameState.player.health <= 0) && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-red-500 mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-red-800 rounded-lg p-8 text-center max-w-sm">
+            <div className="text-3xl font-bold text-red-700 mb-4">
               게임 오버
             </div>
-            <div className="text-xl mb-6">
+            <div className="text-lg mb-6 text-gray-700">
               {gameState.pollution >= 100 
                 ? '오염이 모든 것을 집어삼켰다...' 
                 : '당신은 쓰러졌다...'}
             </div>
             <button
               onClick={() => setGameState(createInitialState())}
-              className="bg-red-600 hover:bg-red-700 px-8 py-3 rounded-lg text-lg"
+              className="bg-red-700 text-white px-6 py-3 rounded border-2 border-red-900 active:bg-red-800"
             >
               다시 시작
             </button>
@@ -301,8 +282,8 @@ export default function Game() {
       )}
 
       {/* 하단 정보 */}
-      <div className="bg-gray-950 bg-opacity-80 p-3 text-center text-xs text-gray-500 border-t border-gray-700">
-        가시나무 탑 v0.1 - 클릭하여 텍스트 스킵 가능
+      <div className="bg-amber-100 border-t-2 border-amber-800 p-2 text-center text-xs text-amber-700">
+        가시나무 탑 · 텍스트를 클릭하여 스킵
       </div>
     </div>
   );
