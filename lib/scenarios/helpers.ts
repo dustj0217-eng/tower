@@ -57,3 +57,45 @@ export function addFlag(state: GameState, flag: string): GameState {
 export function applyTrust(state: GameState, delta: number): GameState {
   return { ...state, echoTrust: state.echoTrust + delta };
 }
+
+// helpers.ts에 추가할 함수들
+
+/**
+ * 연속 대화 카운트 증가 + 신뢰도 적용
+ * 대화를 이어갈 때 사용
+ */
+export function incrementConsecutiveTalks(
+  state: GameState,
+  trustDelta: number = 0
+): GameState {
+  const updatedState = {
+    ...state,
+    consecutiveTalks: (state.consecutiveTalks || 0) + 1,
+  };
+  
+  if (trustDelta !== 0) {
+    return applyTrust(updatedState, trustDelta);
+  }
+  
+  return updatedState;
+}
+
+/**
+ * 연속 대화 카운트 리셋 + 신뢰도 적용
+ * 대화를 완전히 종료할 때 사용
+ */
+export function resetConsecutiveTalks(
+  state: GameState,
+  trustDelta: number = 0
+): GameState {
+  const updatedState = {
+    ...state,
+    consecutiveTalks: 0,
+  };
+  
+  if (trustDelta !== 0) {
+    return applyTrust(updatedState, trustDelta);
+  }
+  
+  return updatedState;
+}

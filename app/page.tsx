@@ -120,66 +120,222 @@ export default function Game() {
     }
   };
 
+  // 기존 코드를 이것으로 교체하세요
+
   return (
     <div className="min-h-screen bg-amber-50 flex flex-col">
       {/* 상단 스탯바 - 컴팩트 */}
       <div className="bg-amber-100 border-b-2 border-amber-800 shadow-sm">
         <div className="p-3">
-          {/* 핵심 스탯 */}
-          <div className="flex items-center justify-between mb-2 text-sm">
-            <div className="flex items-center gap-3">
+          {/* 핵심 스탯 - 바 형태 */}
+          <div className="space-y-2 mb-3 grid grid-cols-2 gap-4">
+            {/* 체력 */}
+            <div className="relative">
               <button 
                 onClick={() => setShowTooltip(showTooltip === 'health' ? null : 'health')}
-                className="flex items-center gap-1"
+                className="w-full text-left"
               >
-                <span>❤️</span>
-                <span className="text-rose-700 font-bold">{gameState.player.health}/{gameState.player.maxHealth}</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-amber-900">❤️ 체력</span>
+                  <span className="text-xs text-rose-700 font-bold">{gameState.player.health}/{gameState.player.maxHealth}</span>
+                </div>
+                <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-rose-500 to-rose-600 transition-all duration-300"
+                    style={{ width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }}
+                  />
+                </div>
               </button>
+              {showTooltip === 'health' && (
+                <div className="absolute top-full left-0 mt-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                  생명력 - 0이 되면 게임 오버
+                </div>
+              )}
+            </div>
+
+            {/* 오염도 */}
+            <div className="relative">
               <button 
                 onClick={() => setShowTooltip(showTooltip === 'pollution' ? null : 'pollution')}
-                className="flex items-center gap-1"
+                className="w-full text-left"
               >
-                <span>☠️</span>
-                <span className="text-red-700 font-bold">{gameState.pollution}%</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-amber-900">☠️ 오염</span>
+                  <span className="text-xs text-red-700 font-bold">{gameState.pollution}%</span>
+                </div>
+                <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-gray-700 to-gray-900 transition-all duration-300"
+                    style={{ width: `${gameState.pollution}%` }}
+                  />
+                </div>
               </button>
+              {showTooltip === 'pollution' && (
+                <div className="absolute top-full left-0 mt-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                  오염도 - 100%가 되면 게임 오버
+                </div>
+              )}
+            </div>
+
+            {/* 세계수 */}
+            <div className="relative">
               <button 
                 onClick={() => setShowTooltip(showTooltip === 'worldTree' ? null : 'worldTree')}
-                className="flex items-center gap-1"
+                className="w-full text-left"
               >
-                <span>🌱</span>
-                <span className="text-green-700 font-bold">{gameState.worldTree}%</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-amber-900">🌱 세계수</span>
+                  <span className="text-xs text-green-700 font-bold">{gameState.worldTree}%</span>
+                </div>
+                <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-300"
+                    style={{ width: `${gameState.worldTree}%` }}
+                  />
+                </div>
               </button>
+              {showTooltip === 'worldTree' && (
+                <div className="absolute top-full left-0 mt-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                  세계수 - 회복의 희망
+                </div>
+              )}
             </div>
-            <div className="text-amber-700">
-              <span>🕐 {gameState.turnCount}</span>
+
+            {/* 에코 신뢰도 */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'echoTrust' ? null : 'echoTrust')}
+                className="w-full text-left"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-amber-900">💫 에코</span>
+                  <span className="text-xs text-purple-700 font-bold">{gameState.echoTrust}/100</span>
+                </div>
+                <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-400 to-pink-500 transition-all duration-300"
+                    style={{ width: `${gameState.echoTrust}%` }}
+                  />
+                </div>
+              </button>
+              {showTooltip === 'echoTrust' && (
+                <div className="absolute top-full left-0 mt-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                  에코 - 그녀가 당신을 얼마나 믿고 있는지
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 툴팁 */}
-          {showTooltip && (
-            <div className="text-xs bg-amber-200 border border-amber-700 rounded p-2 mb-2">
-              {showTooltip === 'health' && '생명력 - 0이 되면 게임 오버'}
-              {showTooltip === 'pollution' && '오염도 - 100%가 되면 게임 오버'}
-              {showTooltip === 'worldTree' && '세계수 - 회복의 희망'}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2">
+          {/* 자원 & 스탯 & 턴 수 */}
+          <div className="flex items-center justify-between text-xs border-t border-amber-300 pt-2">
             {/* 자원 */}
-            <div className="flex items-center gap-3 text-sm mt-2 rounded p-2">
-              <span>🍞 {gameState.resources.food}</span>
-              <span>💎 {gameState.resources.manaFragment}</span>
-              <span>💧 {gameState.resources.purifyingWater}</span>
-              <span>✨ {gameState.resources.soulFragment}</span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'food' ? null : 'food')}
+                className="relative"
+              >
+                <span>🍞 {gameState.resources.food}</span>
+                {showTooltip === 'food' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    식량
+                  </div>
+                )}
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'mana' ? null : 'mana')}
+                className="relative"
+              >
+                <span>💎 {gameState.resources.manaFragment}</span>
+                {showTooltip === 'mana' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    마력 결정
+                  </div>
+                )}
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'water' ? null : 'water')}
+                className="relative"
+              >
+                <span>💧 {gameState.resources.purifyingWater}</span>
+                {showTooltip === 'water' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    정화의 물
+                  </div>
+                )}
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'soul' ? null : 'soul')}
+                className="relative"
+              >
+                <span>✨ {gameState.resources.soulFragment}</span>
+                {showTooltip === 'soul' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    영혼의 파편
+                  </div>
+                )}
+              </button>
             </div>
 
             {/* 스탯 */}
-            <div className="flex items-center gap-3 text-sm mt-2 rounded p-2">
-              <span>💪 {gameState.player.strength}</span>
-              <span>🏃 {gameState.player.agility}</span>
-              <span>🔮 {gameState.player.magic}</span>
-              <span>👁️ {gameState.player.perception}</span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'strength' ? null : 'strength')}
+                className="relative"
+              >
+                <span>💪 {gameState.player.strength}</span>
+                {showTooltip === 'strength' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    힘
+                  </div>
+                )}
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'agility' ? null : 'agility')}
+                className="relative"
+              >
+                <span>🏃 {gameState.player.agility}</span>
+                {showTooltip === 'agility' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    민첩
+                  </div>
+                )}
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'magic' ? null : 'magic')}
+                className="relative"
+              >
+                <span>🔮 {gameState.player.magic}</span>
+                {showTooltip === 'magic' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    마법
+                  </div>
+                )}
+              </button>
+              <button 
+                onClick={() => setShowTooltip(showTooltip === 'perception' ? null : 'perception')}
+                className="relative"
+              >
+                <span>👁️ {gameState.player.perception}</span>
+                {showTooltip === 'perception' && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                    감지
+                  </div>
+                )}
+              </button>
             </div>
+
+            {/* 턴 수 */}
+            <button 
+              onClick={() => setShowTooltip(showTooltip === 'turn' ? null : 'turn')}
+              className="relative"
+            >
+              <span className="text-amber-700">🕐 {gameState.turnCount}</span>
+              {showTooltip === 'turn' && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10 text-xs bg-amber-900 text-amber-50 rounded px-2 py-1 whitespace-nowrap shadow-lg">
+                  경과 턴
+                </div>
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -8,6 +8,14 @@ export interface GameState {
   flags: Record<string, boolean>;
   turnCount: number;        // 턴 수
   visitedRooms?: string[]
+
+  /**
+   * 연속 대화 횟수 추적
+   * - 대화를 끝내지 않고 계속 이어갈 때마다 증가
+   * - 실제로 대화를 종료하면 0으로 리셋
+   * - 이 값이 있으면 에코가 "또 할 얘기가 있나요?" 같은 반응을 보임
+   */
+  consecutiveTalks?: number;
   
   // 자원
   resources: {
@@ -50,4 +58,5 @@ export interface Scenario {
   text: string | ((state: GameState) => string);
   choices: Choice[];
   onEnter?: (state: GameState) => string | null; 
+  effect?: (state: GameState) => GameState;  // ← 추가
 }
