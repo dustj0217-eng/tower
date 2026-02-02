@@ -214,13 +214,13 @@ export default function Game() {
         />
         
         {/* 어두운 오버레이 */}
-        <div className="absolute inset-0 bg-black opacity-40" />
+        <div className="absolute inset-0" />
 
         {/* 콘텐츠 */}
         <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
           {/* 타이틀 */}
-          <div className="space-y-4 bg-black bg-opacity-60 backdrop-blur-sm p-8 rounded-lg border-2 border-amber-700">
-            <div className="text-6xl font-bold text-amber-200 mb-2 tracking-wider drop-shadow-lg">
+          <div className="space-y-4">
+            <div className="text-5xl font-serif font-bold text-amber-200 mb-2 tracking-wider drop-shadow-lg">
               가시나무 탑
             </div>
             <div className="text-2xl text-amber-300 font-serif drop-shadow-md">
@@ -239,7 +239,7 @@ export default function Game() {
           </div>
 
           {/* 메뉴 버튼들 */}
-          <div className="space-y-4 bg-black bg-opacity-50 backdrop-blur-sm p-6 rounded-lg">
+          <div className="space-y-4 p-6 rounded-lg">
             <button
               onClick={() => setShowNewGameConfirm(true)}
               className="w-full max-w-md mx-auto block bg-amber-700 text-amber-50 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-amber-900 shadow-lg"
