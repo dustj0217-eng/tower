@@ -136,7 +136,7 @@ export default function Game() {
                 className="w-full text-left"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-amber-900">❤️ 체력</span>
+                  <span className="text-xs font-medium text-amber-900">체력</span>
                   <span className="text-xs text-rose-700 font-bold">{gameState.player.health}/{gameState.player.maxHealth}</span>
                 </div>
                 <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
@@ -160,7 +160,7 @@ export default function Game() {
                 className="w-full text-left"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-amber-900">☠️ 오염</span>
+                  <span className="text-xs font-medium text-amber-900">오염</span>
                   <span className="text-xs text-red-700 font-bold">{gameState.pollution}%</span>
                 </div>
                 <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
@@ -184,7 +184,7 @@ export default function Game() {
                 className="w-full text-left"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-amber-900">🌱 세계수</span>
+                  <span className="text-xs font-medium text-amber-900">세계수</span>
                   <span className="text-xs text-green-700 font-bold">{gameState.worldTree}%</span>
                 </div>
                 <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
@@ -208,7 +208,7 @@ export default function Game() {
                 className="w-full text-left"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-amber-900">💫 에코</span>
+                  <span className="text-xs font-medium text-amber-900">에코</span>
                   <span className="text-xs text-purple-700 font-bold">{gameState.echoTrust}/100</span>
                 </div>
                 <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
