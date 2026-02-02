@@ -128,7 +128,7 @@ export default function Game() {
       <div className="bg-amber-100 border-b-2 border-amber-800 shadow-sm">
         <div className="p-3">
           {/* 핵심 스탯 - 바 형태 */}
-          <div className="space-y-2 mb-3 grid grid-cols-2 gap-4">
+          <div className="space-y-2 mb-3 grid grid-cols-4 gap-4">
             {/* 체력 */}
             <div className="relative">
               <button 
