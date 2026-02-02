@@ -18,6 +18,7 @@ export default function Game() {
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
   
   // 설정 상태
   const [theme, setTheme] = useState<Theme>('classic');
@@ -72,6 +73,8 @@ export default function Game() {
             newState = choice.effect(newState);
           }
           setGameState(newState);
+          // 자동 저장
+          setTimeout(() => saveGame(), 100);
         }
         setShowDice(false);
         setDiceResult(null);
@@ -94,6 +97,8 @@ export default function Game() {
     }
 
     setGameState(newState);
+    // 자동 저장
+    setTimeout(() => saveGame(), 100);
   };
 
   const skipTyping = () => {
@@ -106,9 +111,61 @@ export default function Game() {
     setIsTyping(false);
   };
 
-  const startNewGame = () => {
-    setGameState(createInitialState());
+  // 게임 저장
+  const saveGame = () => {
+    try {
+      const saveData = {
+        gameState,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('thornTowerSave', JSON.stringify(saveData));
+      return true;
+    } catch (error) {
+      console.error('게임 저장 실패:', error);
+      return false;
+    }
+  };
+
+  // 게임 불러오기
+  const loadGame = () => {
+    try {
+      const saved = localStorage.getItem('thornTowerSave');
+      if (saved) {
+        const saveData = JSON.parse(saved);
+        setGameState(saveData.gameState);
+        setScreen('game');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('게임 불러오기 실패:', error);
+      return false;
+    }
+  };
+
+  // 저장 데이터 확인
+  const hasSaveData = () => {
+    try {
+      const saved = localStorage.getItem('thornTowerSave');
+      return !!saved;
+    } catch {
+      return false;
+    }
+  };
+
+  const startNewGame = (skipTutorial: boolean = false) => {
+    const newState = createInitialState();
+    if (skipTutorial) {
+      // 튜토리얼 스킵: 적절한 시작 지점으로 이동
+      // 예: 튜토리얼 이후 시나리오 ID로 설정
+      // newState.currentScenarioId = 'after_tutorial'; // 실제 시나리오 ID로 변경 필요
+      // 기본 자원 약간 추가
+      newState.resources.food = 10;
+      newState.resources.manaFragment = 3;
+    }
+    setGameState(newState);
     setScreen('game');
+    setShowNewGameConfirm(false);
   };
 
   const getThemeClasses = () => {
@@ -157,13 +214,13 @@ export default function Game() {
         />
         
         {/* 어두운 오버레이 */}
-        <div className="absolute inset-0" />
+        <div className="absolute inset-0 bg-black opacity-40" />
 
         {/* 콘텐츠 */}
         <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
           {/* 타이틀 */}
-          <div className="space-y-4 p-8">
-            <div className="text-5xl font-bold text-amber-200 mb-2 font-serif tracking-wider">
+          <div className="space-y-4 bg-black bg-opacity-60 backdrop-blur-sm p-8 rounded-lg border-2 border-amber-700">
+            <div className="text-6xl font-bold text-amber-200 mb-2 tracking-wider drop-shadow-lg">
               가시나무 탑
             </div>
             <div className="text-2xl text-amber-300 font-serif drop-shadow-md">
@@ -182,24 +239,29 @@ export default function Game() {
           </div>
 
           {/* 메뉴 버튼들 */}
-          <div className="space-y-4 p-6 rounded-lg">
+          <div className="space-y-4 bg-black bg-opacity-50 backdrop-blur-sm p-6 rounded-lg">
             <button
-              onClick={startNewGame}
-              className="w-full max-w-md mx-auto block bg-amber-700 bg-opacity-50 text-amber-50 px-8 py-4 rounded-lg text-lg font-semibold"
+              onClick={() => setShowNewGameConfirm(true)}
+              className="w-full max-w-md mx-auto block bg-amber-700 text-amber-50 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-amber-900 shadow-lg"
             >
               새 게임 시작하기
             </button>
             
             <button
-              disabled
-              className="w-full max-w-md mx-auto block bg-gray-700 text-gray-400 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-gray-800 shadow-lg opacity-50 cursor-not-allowed"
+              onClick={loadGame}
+              disabled={!hasSaveData()}
+              className={`w-full max-w-md mx-auto block px-8 py-4 rounded-lg text-lg font-semibold border-2 shadow-lg ${
+                hasSaveData()
+                  ? 'bg-amber-600 text-amber-50 border-amber-800'
+                  : 'bg-gray-700 text-gray-400 border-gray-800 opacity-50 cursor-not-allowed'
+              }`}
             >
-              이어하기 (준비 중)
+              이어하기 {!hasSaveData() && '(저장된 데이터 없음)'}
             </button>
 
             <button
               onClick={() => setShowSettings(true)}
-              className="w-full max-w-md mx-auto block bg-amber-700 bg-opacity-50 text-amber-100 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-amber-900 shadow-lg"
+              className="w-full max-w-md mx-auto block bg-amber-800 text-amber-100 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-amber-900 shadow-lg"
             >
               설정
             </button>
@@ -224,6 +286,41 @@ export default function Game() {
             setFontFamily={setFontFamily}
             onClose={() => setShowSettings(false)}
           />
+        )}
+
+        {/* 새 게임 확인 모달 */}
+        {showNewGameConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">새 게임 시작</h2>
+              <p className="text-gray-600 mb-6">
+                어떻게 게임을 시작하시겠습니까?
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => startNewGame(false)}
+                  className="w-full bg-amber-700 text-white px-6 py-4 rounded-lg font-semibold border-2 border-amber-900"
+                >
+                  처음부터 시작 (튜토리얼 포함)
+                </button>
+                
+                <button
+                  onClick={() => startNewGame(true)}
+                  className="w-full bg-amber-600 text-white px-6 py-4 rounded-lg font-semibold border-2 border-amber-800"
+                >
+                  튜토리얼 건너뛰기
+                </button>
+                
+                <button
+                  onClick={() => setShowNewGameConfirm(false)}
+                  className="w-full bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -567,6 +664,21 @@ export default function Game() {
           </button>
 
           <button
+            onClick={() => {
+              const success = saveGame();
+              if (success) {
+                alert('게임이 저장되었습니다!');
+              } else {
+                alert('저장에 실패했습니다.');
+              }
+            }}
+            className="flex flex-col items-center gap-1"
+          >
+            <span className="text-2xl">💾</span>
+            <span className="text-xs">저장</span>
+          </button>
+
+          <button
             disabled
             className="flex flex-col items-center gap-1 opacity-50 cursor-not-allowed"
           >
@@ -827,6 +939,19 @@ function SettingsModal({
           className="w-full mt-6 bg-amber-600 text-white px-6 py-3 rounded font-semibold"
         >
           확인
+        </button>
+
+        {/* 저장 데이터 삭제 */}
+        <button
+          onClick={() => {
+            if (confirm('저장된 게임 데이터를 삭제하시겠습니까?')) {
+              localStorage.removeItem('thornTowerSave');
+              alert('저장 데이터가 삭제되었습니다.');
+            }
+          }}
+          className="w-full mt-2 bg-red-600 text-white px-6 py-3 rounded font-semibold text-sm"
+        >
+          저장 데이터 삭제
         </button>
       </div>
     </div>
