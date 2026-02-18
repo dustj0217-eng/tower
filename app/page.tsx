@@ -153,16 +153,6 @@ export default function Game() {
     }
   };
 
-  const hasSaveData = async () => {
-    try {
-      const res = await fetch('http://localhost:3001/load/1');
-      const data = await res.json();
-      return data.success;
-    } catch {
-      return false;
-    }
-  };
-
   const startNewGame = (skipTutorial: boolean = false) => {
     const newState = createInitialState();
     if (skipTutorial) {
