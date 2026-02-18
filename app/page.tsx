@@ -158,7 +158,7 @@ export default function Game() {
     if (skipTutorial) {
       // 튜토리얼 스킵: 적절한 시작 지점으로 이동
       // 예: 튜토리얼 이후 시나리오 ID로 설정
-      // newState.currentScenarioId = 'after_tutorial'; // 실제 시나리오 ID로 변경 필요
+      newState.currentScenarioId = 'shelter_hub'; // 실제 시나리오 ID로 변경 필요
       // 기본 자원 약간 추가
       newState.resources.food = 10;
       newState.resources.manaFragment = 3;
