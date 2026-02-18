@@ -19,6 +19,7 @@ export default function Game() {
   const [showSettings, setShowSettings] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [hasSave, setHasSave] = useState(false);
   
   // 설정 상태
   const [theme, setTheme] = useState<Theme>('classic');
@@ -29,6 +30,14 @@ export default function Game() {
   const currentScenario = scenarios.find(
     (s) => s.id === gameState.currentScenarioId
   );
+
+  // 백엔드
+  useEffect(() => {
+    fetch('http://localhost:3001/load/1')
+      .then(res => res.json())
+      .then(data => setHasSave(data.success))
+      .catch(() => setHasSave(false));
+  }, []);
 
   // 타이핑 효과
   useEffect(() => {
@@ -112,14 +121,15 @@ export default function Game() {
   };
 
   // 게임 저장
-  const saveGame = () => {
+  const saveGame = async () => {
     try {
-      const saveData = {
-        gameState,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('thornTowerSave', JSON.stringify(saveData));
-      return true;
+      const res = await fetch('http://localhost:3001/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot: 1, gameState }),
+      });
+      const data = await res.json();
+      return data.success;
     } catch (error) {
       console.error('게임 저장 실패:', error);
       return false;
@@ -127,12 +137,12 @@ export default function Game() {
   };
 
   // 게임 불러오기
-  const loadGame = () => {
+  const loadGame = async () => {
     try {
-      const saved = localStorage.getItem('thornTowerSave');
-      if (saved) {
-        const saveData = JSON.parse(saved);
-        setGameState(saveData.gameState);
+      const res = await fetch('http://localhost:3001/load/1');
+      const data = await res.json();
+      if (data.success) {
+        setGameState(data.gameState);
         setScreen('game');
         return true;
       }
@@ -143,11 +153,11 @@ export default function Game() {
     }
   };
 
-  // 저장 데이터 확인
-  const hasSaveData = () => {
+  const hasSaveData = async () => {
     try {
-      const saved = localStorage.getItem('thornTowerSave');
-      return !!saved;
+      const res = await fetch('http://localhost:3001/load/1');
+      const data = await res.json();
+      return data.success;
     } catch {
       return false;
     }
@@ -249,14 +259,14 @@ export default function Game() {
             
             <button
               onClick={loadGame}
-              disabled={!hasSaveData()}
+              disabled={!hasSave}
               className={`w-full max-w-md mx-auto block px-8 py-4 rounded-lg text-lg font-semibold border-2 shadow-lg ${
-                hasSaveData()
+                hasSave
                   ? 'bg-amber-600 text-amber-50 border-amber-800'
                   : 'bg-gray-700 text-gray-400 border-gray-800 opacity-50 cursor-not-allowed'
               }`}
             >
-              이어하기 {!hasSaveData() && '(저장된 데이터 없음)'}
+              이어하기 {!hasSave && '(저장된 데이터 없음)'}
             </button>
 
             <button
@@ -664,8 +674,8 @@ export default function Game() {
           </button>
 
           <button
-            onClick={() => {
-              const success = saveGame();
+            onClick={async () => {
+              const success = await saveGame();
               if (success) {
                 alert('게임이 저장되었습니다!');
               } else {
